@@ -1,0 +1,9 @@
+# R
+*.Rproj
+.Rhistory
+.Rproj.user/
+
+# Hartshorne et. al (2018)
+osf-resources
+
+

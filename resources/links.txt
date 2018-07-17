@@ -1,0 +1,12 @@
+# super helpful
+http://mc-stan.org/users/documentation/case-studies/tutorial_twopl.html#spellingdata
+# Air BnB data science post
+https://multithreaded.stitchfix.com/blog/2017/12/13/latentsize/
+# Stan for Bayesian IRT
+http://journals.sagepub.com/doi/full/10.1177/0013164417693666
+# Blogpost on Stan for Bayesian IRT
+http://robertmyles.github.io/2016/05/21/bayesian-irt-in-r-and-stan/
+# on ideal points
+https://blogs.iq.harvard.edu/ideal_points_1
+# IRt with Stan (kind of useful, some examples)
+http://mc-stan.org/workshops/IMPS2016/irt_with_stan.html#52

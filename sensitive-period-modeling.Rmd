@@ -1,0 +1,164 @@
+---
+title: "sensitive-period-modeling"
+author: "Ben"
+date: "6/2/2018"
+output: html_document
+---
+
+```{r libraries, message=FALSE, warning=FALSE}
+library(rstan)
+library(tidyverse)
+
+rstan_options(auto_write = TRUE)
+options(mc.cores = parallel::detectCores())
+```
+
+
+```{r data}
+df <- read.csv('osf-resources/data.csv')
+```
+
+# Subset analysis
+```{r subset}
+n_samples <- 1000
+n_sample_ids <- sample(df$id, size=n_samples)
+df_subset <- df %>%
+  filter(id %in% n_sample_ids)
+```
+
+```{r reduce-cols}
+cols_demo <- c('id', 'gender', 'age', 'primelangs', 'education', 'tests', 'Eng_start', 'Eng_country_yrs', 'house_Eng', 'currcountry')
+# Melt question cols
+df_subset_melt <- df_subset %>% 
+  select(cols_demo, contains('q')) %>%
+  gather(question, answer, contains('q'))
+```
+
+```{r plot-proportion-correct}
+df_subset_melt %>%
+  group_by(question) %>%
+  summarise(mean_answer=mean(answer)) %>%
+  mutate(multi_part_q=grepl('_', question)) %>%
+  ggplot(aes(x=question, y=mean_answer, fill=multi_part_q)) +
+    geom_bar(stat='identity', position='dodge') +
+    coord_cartesian(ylim=c(0.5,1.0)) +
+    theme_classic()
+```
+
+
+```{r}
+M <- df_subset %>% select(id, contains('q'))
+```
+
+
+## Modeling
+
+  * `ability` parameter for each participants
+  * `difficulty` parameter for each question
+
+
+Probability a participant correctly answer a question
+$$\sigma^{-1}(p_{qs}) = \mu_0 + \eta_q + \eta_s$$
+
+The log odds of the probabiliyt of a correct response for question $q$ from participant $s$ is modeled by some overall mean $\mu_0$ along with contributes for the difficulty of the question $\eta_q$ and latent ability of participant $\eta_s$.
+
+We assume:
+
+$$\sigma^{-1}(p_{i}) = \mu_0 + \eta_q + \eta_s$$
+$$\eta_q \sim N(0, \sigma^2_{Q}$$
+$$\eta_s \sim N(0, \sigma^2_{S}$$
+Data must be in long-form.
+```{r}
+# Check for NAs
+M_melt <- M %>%
+  gather(question, answer, contains('q')) %>%
+  filter(question %in% c("q1", "q2", "q3"))
+M_melt %>% 
+  group_by(answer) %>%
+  summarise(n=n())
+```
+
+```{r}
+stan_model <- "
+data {
+  int<lower=1> I;               // # n_questions
+  int<lower=1> J;               // # n_participants
+  int<lower=1> N;               // # total observations
+  int<lower=1, upper=I> ii[N];  // question for n
+  int<lower=1, upper=J> jj[N];  // person for n
+  int<lower=0, upper=1> y[N];   // correctness for n
+}
+parameters {
+  vector<lower=0>[I] alpha;     // discrimination for item i
+  vector[I] beta;               // difficulty for item i
+  vector[J] theta;              // ability for person j
+}
+model {
+  vector[N] eta;
+  alpha ~ lognormal(0.5,1);
+  beta ~ normal(0,10);
+  theta ~ normal(0,1);
+  for (n in 1:N)
+    eta[n] = alpha[ii[n]] * (theta[jj[n]] - beta[ii[n]]);
+  y ~ bernoulli_logit(eta); 
+}
+"
+
+```
+
+Note:
+  * Data cannot contains missing values (stan doesn't like)
+  * Identifiers for students and items must be consecutive intevers starting with 1
+  
+  
+```{r stan-data-setup}
+M_melt$participant_id <- 1:nrow(M_melt)
+unique_questions <- unique(M_melt$question)
+question_ids <- 1:length(unique_questions)
+df_question_map <- data.frame(question=unique_questions, question_id=question_ids)
+question2id <- function(question_) {
+  subset(df_question_map, question==question_)$question_id
+}
+M_melt$item_id <- purrr::map_int(M_melt$question, question2id)
+M_melt <- M_melt %>%
+  rename(response=answer) %>%
+  select(participant_id, item_id, response)
+
+stan_data <- list(
+  I=max(M_melt$item_id),
+  J=max(M_melt$participant_id),
+  N=nrow(M_melt),
+  ii=M_melt$item_id,
+  jj=M_melt$participant_id,
+  y=M_melt$response)
+
+```
+
+
+
+```{r}
+fit <- stan(model_code=stan_model, data=stan_data,model_name='sensitive_period_2pl', iter=500, chains=4)
+```
+
+# Model checking
+
+Get params
+```{r params}
+print(fit, pars=c('alpha', 'beta'))
+
+all_estimates <- summary(fit)[[1]]
+theta_estimates <- summary(fit, pars='theta')[[1]]
+```
+
+Convergence
+```{r convergence}
+stan_rhat(fit, 'theta')
+```
+
+
+
+
+
+
+
+

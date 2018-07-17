@@ -1,0 +1,34 @@
+Item REsponse Theory (IRT)
+
+Person-level attributes (and measurement error)
+Item-level attributes (and measurement error?)
+
+>> https://www.youtube.com/watch?v=QHIKJlcniHA
+[10:18]
+	* Measurement tool
+		+ test/questionaire
+	* Measurement theory
+		+ Pariticipant has unobserved trait (intelligence, knowledge...)
+	* Questionaires often involve mapping discreted (binary) reponses onto unobserved traits that are assumed to be continuous	
+
+[17:03]
+	* Probability of observing a positive response will vary by item and by a person's level on the scale
+	* Rasch model: logit person endorses item = wealth_person - cost_item
+
+	* certain items are better or worse for assessing where a person is on the scale (precision at different parts of the scale (or different populations of people answering the questions))
+
+	* desirable properties 
+		+ each item should rank two individuals similarly
+		+ each erson should rank two items similarly
+		+ [27:30] the number of endorsements tells us about the train, their pattern does not 
+
+	* two parameter model
+		+ y_ij = a_i * \theta_j - b_i
+			y_ij -> logit that item i is endorsed by person j
+			\theta_j -> trait level of person j
+			b_i -> difficult of item i (e.g. item threshold)
+			a_i -> discrimination of item i (e.g. item slope or loading)
+				-> correlation between item and latent trait
+
+	* [44:10] basic model assume a monotonic relationship btwn latent trait and response probability
+		+ alternative are unfolding IRT models
